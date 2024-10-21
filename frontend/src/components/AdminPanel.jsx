@@ -279,12 +279,8 @@ const AdminPanel = ({ onLogout, user }) => {
                 </Flex>
 
                 <Flex align="center">
-                    <InputGroup>
-                        <InputLeftElement pointerEvents="none" children={<FaSearch color="gray.300" />} />
-                        <Input type="text" placeholder="Buscar..." />
-                    </InputGroup>
                     <Menu>
-                        <MenuButton as={Button} rounded={'full'} variant={'link'} cursor={'pointer'} minW={0}>
+                        <MenuButton as={Button} rounded={'full'} variant={'link'} cursor={'pointer'} minW={0} marginRight={5}>
                             <Icon as={FaBell} w={6} h={6} />
                         </MenuButton>
                         <MenuList>
