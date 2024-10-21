@@ -6,7 +6,7 @@ import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai';
 import { FaUserAlt, FaLock } from 'react-icons/fa';
 
 const Login = ({ onLogin }) => {
-  const [credentials, setCredentials] = useState({ username: '', password: '' });
+  const [credentials, setCredentials] = useState({ username: 'admin', password: 'admin123' });
   const [showPassword, setShowPassword] = useState(false);
   const toast = useToast();
 
