@@ -28,11 +28,12 @@ import {
 } from '@chakra-ui/react';
 import { motion } from 'framer-motion';
 import { FaCar, FaBarcode, FaCalendarAlt, FaCog, FaIdCard, FaDollarSign, FaShieldAlt } from 'react-icons/fa';
+import ApiService from '../services/api';
 
 const MotionBox = motion(Box);
 
-const RegistrarCamioneta = ({ onSubmit }) => {
-    const [camionetaData, setCamionetaData] = useState({
+const RegistrarVehiculo = ({ onSubmit }) => {
+    const [vehiculoData, setVehiculoData] = useState({
         nroInterno: '',
         designacion: '',
         marca: '',
@@ -42,7 +43,7 @@ const RegistrarCamioneta = ({ onSubmit }) => {
         chasis: '',
         patente: '',
         titulo: '',
-        estado: '',
+        estado: 'DISPONIBLE',
         responsable: '',
         ministerio: '',
         precio: '',
@@ -66,7 +67,17 @@ const RegistrarCamioneta = ({ onSubmit }) => {
             case 'patente':
                 return !/^[A-Z]{2}\d{3}[A-Z]{2}$/.test(value) ? 'La patente debe tener el formato AA000AA' : '';
             case 'precio':
-                return isNaN(value) || value < 0 ? 'El precio debe ser un número positivo' : '';
+                return value && (isNaN(value) || value < 0) ? 'El precio debe ser un número positivo' : '';
+            case 'designacion':
+                return value.trim().length < 3 ? 'La designación debe tener al menos 3 caracteres' : '';
+            case 'marca':
+                return value.trim().length < 2 ? 'La marca debe tener al menos 2 caracteres' : '';
+            case 'modelo':
+                return value.trim().length < 2 ? 'El modelo debe tener al menos 2 caracteres' : '';
+            case 'motor':
+                return value.trim().length < 3 ? 'El número de motor debe tener al menos 3 caracteres' : '';
+            case 'chasis':
+                return value.trim().length < 3 ? 'El número de chasis debe tener al menos 3 caracteres' : '';
             default:
                 return '';
         }
@@ -74,49 +85,75 @@ const RegistrarCamioneta = ({ onSubmit }) => {
 
     const handleChange = useCallback((e) => {
         const { name, value } = e.target;
-        setCamionetaData(prev => ({ ...prev, [name]: value }));
+        setVehiculoData(prev => ({ ...prev, [name]: value }));
         setErrors(prev => ({ ...prev, [name]: validateField(name, value) }));
     }, [validateField]);
 
+    const validateForm = () => {
+        const requiredFields = [
+            'nroInterno', 'designacion', 'marca', 'modelo',
+            'adquisicion', 'motor', 'chasis', 'patente',
+            'titulo', 'estado'
+        ];
+
+        const newErrors = {};
+        requiredFields.forEach(field => {
+            const error = validateField(field, vehiculoData[field]);
+            if (error) {
+                newErrors[field] = error;
+            }
+        });
+
+        // Validaciones adicionales para campos opcionales con contenido
+        if (vehiculoData.precio) {
+            const precioError = validateField('precio', vehiculoData.precio);
+            if (precioError) newErrors.precio = precioError;
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const newErrors = Object.keys(camionetaData).reduce((acc, key) => {
-            const error = validateField(key, camionetaData[key]);
-            if (error) acc[key] = error;
-            return acc;
-        }, {});
-
-        if (Object.keys(newErrors).length === 0) {
-            try {
-                setIsSubmitting(true);
-                await onSubmit(camionetaData);
-                setIsSubmitting(false);
-                onOpen(); // Abre el modal de confirmación
-            } catch (error) {
-                console.error('Error:', error);
-                setIsSubmitting(false);
-                toast({
-                    title: 'Error',
-                    description: 'Hubo un problema al registrar la camioneta.',
-                    status: 'error',
-                    duration: 5000,
-                    isClosable: true,
-                });
-            }
-        } else {
-            setErrors(newErrors);
+        if (!validateForm()) {
             toast({
-                title: 'Error en el formulario',
-                description: 'Por favor, corrige los errores antes de enviar.',
+                title: 'Error de validación',
+                description: 'Por favor, corrija los errores en el formulario',
                 status: 'error',
                 duration: 5000,
                 isClosable: true,
             });
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const response = await ApiService.post('/vehiculo', vehiculoData);
+
+            if (response.ok) {
+                onOpen();
+                if (onSubmit) {
+                    onSubmit(response.data);
+                }
+            } else {
+                throw new Error(response.msg || 'Error al registrar el vehículo');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            toast({
+                title: 'Error',
+                description: error.message || 'Hubo un problema al registrar el vehículo',
+                status: 'error',
+                duration: 5000,
+                isClosable: true,
+            });
+        } finally {
+            setIsSubmitting(false);
         }
     };
-
     const resetForm = () => {
-        setCamionetaData({
+        setVehiculoData({
             nroInterno: '',
             designacion: '',
             marca: '',
@@ -126,7 +163,7 @@ const RegistrarCamioneta = ({ onSubmit }) => {
             chasis: '',
             patente: '',
             titulo: '',
-            estado: '',
+            estado: 'DISPONIBLE',
             responsable: '',
             ministerio: '',
             precio: '',
@@ -152,7 +189,7 @@ const RegistrarCamioneta = ({ onSubmit }) => {
                 boxShadow="lg"
             >
                 <Heading as="h2" size="lg" mb={6} textAlign="center">
-                    Registrar Camioneta
+                    Registrar Vehículo
                 </Heading>
                 <form onSubmit={handleSubmit}>
                     <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
@@ -163,103 +200,108 @@ const RegistrarCamioneta = ({ onSubmit }) => {
                                 <Input
                                     type="text"
                                     name="nroInterno"
-                                    value={camionetaData.nroInterno}
+                                    value={vehiculoData.nroInterno}
                                     onChange={handleChange}
                                     placeholder="Número interno"
                                     bg={inputBgColor}
-                                    aria-describedby="nroInterno-error"
                                 />
                             </InputGroup>
                             <FormErrorMessage>{errors.nroInterno}</FormErrorMessage>
                         </FormControl>
 
-                        <FormControl id="designacion" isRequired>
+                        <FormControl id="designacion" isRequired isInvalid={!!errors.designacion}>
                             <FormLabel>Designación</FormLabel>
                             <InputGroup>
                                 <InputLeftElement pointerEvents="none" children={<FaCar color="gray.300" />} />
                                 <Input
                                     type="text"
                                     name="designacion"
-                                    value={camionetaData.designacion}
+                                    value={vehiculoData.designacion}
                                     onChange={handleChange}
                                     placeholder="Designación"
                                     bg={inputBgColor}
                                 />
                             </InputGroup>
+                            <FormErrorMessage>{errors.designacion}</FormErrorMessage>
                         </FormControl>
 
-                        <FormControl id="marca" isRequired>
+                        <FormControl id="marca" isRequired isInvalid={!!errors.marca}>
                             <FormLabel>Marca</FormLabel>
                             <InputGroup>
                                 <InputLeftElement pointerEvents="none" children={<FaCar color="gray.300" />} />
                                 <Input
                                     type="text"
                                     name="marca"
-                                    value={camionetaData.marca}
+                                    value={vehiculoData.marca}
                                     onChange={handleChange}
                                     placeholder="Marca del vehículo"
                                     bg={inputBgColor}
                                 />
                             </InputGroup>
+                            <FormErrorMessage>{errors.marca}</FormErrorMessage>
                         </FormControl>
 
-                        <FormControl id="modelo" isRequired>
+                        <FormControl id="modelo" isRequired isInvalid={!!errors.modelo}>
                             <FormLabel>Modelo</FormLabel>
                             <InputGroup>
                                 <InputLeftElement pointerEvents="none" children={<FaCar color="gray.300" />} />
                                 <Input
                                     type="text"
                                     name="modelo"
-                                    value={camionetaData.modelo}
+                                    value={vehiculoData.modelo}
                                     onChange={handleChange}
                                     placeholder="Modelo del vehículo"
                                     bg={inputBgColor}
                                 />
                             </InputGroup>
+                            <FormErrorMessage>{errors.modelo}</FormErrorMessage>
                         </FormControl>
 
-                        <FormControl id="adquisicion" isRequired>
+                        <FormControl id="adquisicion" isRequired isInvalid={!!errors.adquisicion}>
                             <FormLabel>Adquisición</FormLabel>
                             <InputGroup>
                                 <InputLeftElement pointerEvents="none" children={<FaCalendarAlt color="gray.300" />} />
                                 <Input
                                     type="date"
                                     name="adquisicion"
-                                    value={camionetaData.adquisicion}
+                                    value={vehiculoData.adquisicion}
                                     onChange={handleChange}
                                     bg={inputBgColor}
                                 />
                             </InputGroup>
+                            <FormErrorMessage>{errors.adquisicion}</FormErrorMessage>
                         </FormControl>
 
-                        <FormControl id="motor" isRequired>
+                        <FormControl id="motor" isRequired isInvalid={!!errors.motor}>
                             <FormLabel>Número de Motor</FormLabel>
                             <InputGroup>
                                 <InputLeftElement pointerEvents="none" children={<FaCog color="gray.300" />} />
                                 <Input
                                     type="text"
                                     name="motor"
-                                    value={camionetaData.motor}
+                                    value={vehiculoData.motor}
                                     onChange={handleChange}
                                     placeholder="Número de motor"
                                     bg={inputBgColor}
                                 />
                             </InputGroup>
+                            <FormErrorMessage>{errors.motor}</FormErrorMessage>
                         </FormControl>
 
-                        <FormControl id="chasis" isRequired>
+                        <FormControl id="chasis" isRequired isInvalid={!!errors.chasis}>
                             <FormLabel>Número de Chasis</FormLabel>
                             <InputGroup>
                                 <InputLeftElement pointerEvents="none" children={<FaBarcode color="gray.300" />} />
                                 <Input
                                     type="text"
                                     name="chasis"
-                                    value={camionetaData.chasis}
+                                    value={vehiculoData.chasis}
                                     onChange={handleChange}
                                     placeholder="Número de chasis"
                                     bg={inputBgColor}
                                 />
                             </InputGroup>
+                            <FormErrorMessage>{errors.chasis}</FormErrorMessage>
                         </FormControl>
 
                         <FormControl id="patente" isRequired isInvalid={!!errors.patente}>
@@ -269,11 +311,10 @@ const RegistrarCamioneta = ({ onSubmit }) => {
                                 <Input
                                     type="text"
                                     name="patente"
-                                    value={camionetaData.patente}
+                                    value={vehiculoData.patente}
                                     onChange={handleChange}
                                     placeholder="AA000AA"
                                     bg={inputBgColor}
-                                    aria-describedby="patente-error"
                                 />
                             </InputGroup>
                             <FormErrorMessage>{errors.patente}</FormErrorMessage>
@@ -286,7 +327,7 @@ const RegistrarCamioneta = ({ onSubmit }) => {
                                 <Input
                                     type="text"
                                     name="titulo"
-                                    value={camionetaData.titulo}
+                                    value={vehiculoData.titulo}
                                     onChange={handleChange}
                                     placeholder="Título"
                                     bg={inputBgColor}
@@ -298,13 +339,12 @@ const RegistrarCamioneta = ({ onSubmit }) => {
                             <FormLabel>Estado</FormLabel>
                             <Select
                                 name="estado"
-                                value={camionetaData.estado}
+                                value={vehiculoData.estado}
                                 onChange={handleChange}
-                                placeholder="Seleccione el estado"
                                 bg={inputBgColor}
                             >
-                                <option value="ALQUILADA">ALQUILADA</option>
                                 <option value="DISPONIBLE">DISPONIBLE</option>
+                                <option value="ALQUILADA">ALQUILADA</option>
                             </Select>
                         </FormControl>
 
@@ -315,7 +355,7 @@ const RegistrarCamioneta = ({ onSubmit }) => {
                                 <Input
                                     type="text"
                                     name="responsable"
-                                    value={camionetaData.responsable}
+                                    value={vehiculoData.responsable}
                                     onChange={handleChange}
                                     placeholder="Responsable"
                                     bg={inputBgColor}
@@ -330,7 +370,7 @@ const RegistrarCamioneta = ({ onSubmit }) => {
                                 <Input
                                     type="text"
                                     name="ministerio"
-                                    value={camionetaData.ministerio}
+                                    value={vehiculoData.ministerio}
                                     onChange={handleChange}
                                     placeholder="Ministerio"
                                     bg={inputBgColor}
@@ -345,11 +385,10 @@ const RegistrarCamioneta = ({ onSubmit }) => {
                                 <Input
                                     type="number"
                                     name="precio"
-                                    value={camionetaData.precio}
+                                    value={vehiculoData.precio}
                                     onChange={handleChange}
                                     placeholder="Precio"
                                     bg={inputBgColor}
-                                    aria-describedby="precio-error"
                                 />
                             </InputGroup>
                             <FormErrorMessage>{errors.precio}</FormErrorMessage>
@@ -362,7 +401,7 @@ const RegistrarCamioneta = ({ onSubmit }) => {
                                 <Input
                                     type="text"
                                     name="compania"
-                                    value={camionetaData.compania}
+                                    value={vehiculoData.compania}
                                     onChange={handleChange}
                                     placeholder="Compañía de seguros"
                                     bg={inputBgColor}
@@ -377,7 +416,7 @@ const RegistrarCamioneta = ({ onSubmit }) => {
                                 <Input
                                     type="text"
                                     name="nroPoliza"
-                                    value={camionetaData.nroPoliza}
+                                    value={vehiculoData.nroPoliza}
                                     onChange={handleChange}
                                     placeholder="Número de póliza"
                                     bg={inputBgColor}
@@ -392,7 +431,7 @@ const RegistrarCamioneta = ({ onSubmit }) => {
                                 <Input
                                     type="date"
                                     name="vencimiento"
-                                    value={camionetaData.vencimiento}
+                                    value={vehiculoData.vencimiento}
                                     onChange={handleChange}
                                     bg={inputBgColor}
                                 />
@@ -411,10 +450,9 @@ const RegistrarCamioneta = ({ onSubmit }) => {
                             transform: 'translateY(-2px)',
                             boxShadow: 'lg',
                         }}
-                        aria-label="Registrar Camioneta"
                         disabled={isSubmitting}
                     >
-                        {isSubmitting ? <Spinner /> : 'Registrar Camioneta'}
+                        {isSubmitting ? <Spinner /> : 'Registrar Vehículo'}
                     </Button>
                 </form>
             </MotionBox>
@@ -425,11 +463,11 @@ const RegistrarCamioneta = ({ onSubmit }) => {
                     <ModalHeader>Registro Exitoso</ModalHeader>
                     <ModalCloseButton />
                     <ModalBody>
-                        <Text>La camioneta ha sido registrada exitosamente.</Text>
+                        <Text>El vehículo ha sido registrado exitosamente.</Text>
                     </ModalBody>
                     <ModalFooter>
                         <Button colorScheme="blue" mr={3} onClick={resetForm}>
-                            Registrar Otra
+                            Registrar Otro
                         </Button>
                         <Button variant="ghost" onClick={onClose}>Cerrar</Button>
                     </ModalFooter>
@@ -439,4 +477,4 @@ const RegistrarCamioneta = ({ onSubmit }) => {
     );
 };
 
-export default RegistrarCamioneta;
+export default RegistrarVehiculo;

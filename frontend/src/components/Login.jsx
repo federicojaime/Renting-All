@@ -1,39 +1,104 @@
 import React, { useState } from 'react';
-import { Box, Button, FormControl, FormLabel, Input, VStack, useToast, InputGroup, InputRightElement, InputLeftElement, Image, Text, IconButton } from '@chakra-ui/react';
+import { 
+  Box, 
+  Button, 
+  FormControl, 
+  FormLabel, 
+  Input, 
+  VStack, 
+  useToast, 
+  InputGroup, 
+  InputRightElement, 
+  InputLeftElement, 
+  Image, 
+  Text, 
+  IconButton,
+  FormErrorMessage 
+} from '@chakra-ui/react';
 import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai';
 import { FaUserAlt, FaLock } from 'react-icons/fa';
 import Logo from "../assets/logo.png";
 import Fondo from "../assets/imagen_fondo.jpg";
 
 const Login = ({ onLogin }) => {
-  const [credentials, setCredentials] = useState({ username: 'admin', password: 'admin123' });
+  const [credentials, setCredentials] = useState({ email: 'ejemplo@email.com', password: 'contraseña' });
+  const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
 
   const handleChange = (e) => {
-    setCredentials({
-      ...credentials,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    setCredentials(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // Limpiar error cuando el usuario empieza a escribir
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
   };
 
-  const handleSubmit = (e) => {
+  const validateForm = () => {
+    const newErrors = {};
+    if (!credentials.email) {
+      newErrors.email = 'El email es requerido';
+    }
+    if (!credentials.password) {
+      newErrors.password = 'La contraseña es requerida';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (credentials.username === 'admin' && credentials.password === 'admin123') {
-      toast({
-        title: 'Login exitoso',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
+    
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(credentials),
       });
-      onLogin('dummyToken');
-    } else {
+
+      const data = await response.json();
+
+      if (data.ok) {
+        toast({
+          title: 'Login exitoso',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+        onLogin(data.data.jwt, data.data);
+      } else {
+        toast({
+          title: 'Error',
+          description: data.msg || 'Error al iniciar sesión',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      console.error('Error:', error);
       toast({
-        title: 'Credenciales incorrectas',
+        title: 'Error',
+        description: 'Error de conexión',
         status: 'error',
         duration: 3000,
         isClosable: true,
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -75,20 +140,20 @@ const Login = ({ onLogin }) => {
 
           <form onSubmit={handleSubmit} style={{ width: '100%' }}>
             <VStack spacing={4} w="100%">
-              <FormControl>
+              <FormControl isInvalid={!!errors.email}>
                 <FormLabel color="#7d9bb3" fontWeight="500" mb={2}>
-                  Usuario <Text as="span" color="red.500">*</Text>
+                  Email <Text as="span" color="red.500">*</Text>
                 </FormLabel>
                 <InputGroup>
                   <InputLeftElement color="#7d9bb3">
                     <FaUserAlt />
                   </InputLeftElement>
                   <Input
-                    type="text"
-                    name="username"
-                    value={credentials.username}
+                    type="email"
+                    name="email"
+                    value={credentials.email}
                     onChange={handleChange}
-                    placeholder="Ingresa tu usuario"
+                    placeholder="Ingresa tu email"
                     bg="rgba(255, 255, 255, 0.75)"
                     border="1px solid rgba(125, 155, 179, 0.3)"
                     borderRadius="sm"
@@ -101,9 +166,10 @@ const Login = ({ onLogin }) => {
                     }}
                   />
                 </InputGroup>
+                <FormErrorMessage>{errors.email}</FormErrorMessage>
               </FormControl>
 
-              <FormControl>
+              <FormControl isInvalid={!!errors.password}>
                 <FormLabel color="#7d9bb3" fontWeight="500" mb={2}>
                   Contraseña <Text as="span" color="red.500">*</Text>
                 </FormLabel>
@@ -138,6 +204,7 @@ const Login = ({ onLogin }) => {
                     />
                   </InputRightElement>
                 </InputGroup>
+                <FormErrorMessage>{errors.password}</FormErrorMessage>
               </FormControl>
 
               <Button
@@ -160,6 +227,7 @@ const Login = ({ onLogin }) => {
                   transform: "translateY(0)",
                 }}
                 transition="all 0.2s"
+                isLoading={isLoading}
               >
                 Iniciar Sesión
               </Button>
