@@ -1,12 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { FaCar, FaUser, FaSave, FaTimes } from 'react-icons/fa';
+import {
+    Box,
+    Button,
+    FormControl,
+    FormLabel,
+    Input,
+    VStack,
+    useToast,
+    Heading,
+    Container,
+    InputGroup,
+    InputLeftElement,
+    Select,
+    Textarea,
+    SimpleGrid,
+    Checkbox,
+    Text,
+    FormErrorMessage,
+    useColorModeValue,
+} from '@chakra-ui/react';
+import { FaUser, FaCalendarAlt, FaMapMarkerAlt, FaCar, FaRuler } from 'react-icons/fa';
 import ApiService from '../services/api';
 
-const RegistroEntrega = ({ onClose, onSuccess }) => {
-    const [formData, setFormData] = useState({
-        clienteId: '',
-        vehiculoId: '',
+const RegistroEntrega = ({ onSubmit }) => {
+    const [clientes, setClientes] = useState([]);
+    const [vehiculos, setVehiculos] = useState([]);
+    const [entregaData, setEntregaData] = useState({
+        vehiculo_id: '',
+        cliente_id: '',
+        funcionarioEntrega: '',
+        funcionarioRecibe: '',
+        dniEntrega: '',
+        dniRecibe: '',
         fechaEntrega: '',
         fechaDevolucion: '',
         lugarEntrega: '',
@@ -14,299 +39,496 @@ const RegistroEntrega = ({ onClose, onSuccess }) => {
         kilometrajeEntrega: '',
         kilometrajeDevolucion: '',
         nivelCombustible: '',
-        funcionarioEntrega: '',
-        funcionarioRecibe: '',
-        observaciones: ''
+        observaciones: '',
+        inventario: {
+            lucesPrincipales: false,
+            luzMedia: false,
+            luzStop: false,
+            antenaRadio: false,
+            limpiaParabrisas: false,
+            espejoIzquierdo: false,
+            espejoDerecho: false,
+            vidriosLaterales: false,
+            parabrisas: false,
+            tapones: false,
+            taponGasolina: false,
+            carroceria: false,
+            parachoqueDelantero: false,
+            parachoqueTrasero: false,
+            placas: false,
+            // Nuevos campos de inventario
+            calefaccion: false,
+            radioCd: false,
+            bocinas: false,
+            encendedor: false,
+            espejoRetrovisor: false,
+            ceniceros: false,
+            cinturones: false,
+            manijasVidrios: false,
+            pisosGoma: false,
+            tapetes: false,
+            fundaAsientos: false,
+            jaladorPuertas: false,
+            sujetadorManos: false,
+            gato: false,
+            llaveRueda: false,
+            estucheLlaves: false,
+            triangulo: false,
+            llantaAuxilio: false,
+            extintor: false,
+            botiquin: false,
+            otros: false,
+            soat: false,
+            inspeccionTecnica: false
+        },
     });
 
-    const [clientes, setClientes] = useState([]);
-    const [vehiculos, setVehiculos] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [errors, setErrors] = useState({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const toast = useToast();
+    const bgColor = useColorModeValue('white', 'gray.700');
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [clientesRes, vehiculosRes] = await Promise.all([
-                    ApiService.get('/clientes'),
-                    ApiService.get('/vehiculos')
-                ]);
-
-                if (clientesRes.ok && vehiculosRes.ok) {
-                    setClientes(clientesRes.data);
-                    setVehiculos(vehiculosRes.data.filter(v => v.estado === 'disponible'));
-                }
-            } catch (error) {
-                setError('Error al cargar los datos');
-            }
-        };
-
-        fetchData();
+        fetchClientes();
+        fetchVehiculos();
     }, []);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
-        setError('');
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
-
+    const fetchClientes = async () => {
         try {
-            const response = await ApiService.post('/entregas', formData);
+            const response = await ApiService.get('/clientes');
             if (response.ok) {
-                onSuccess();
-                onClose();
-            } else {
-                setError('Error al registrar la entrega');
+                setClientes(response.data);
             }
         } catch (error) {
-            setError('Error al conectar con el servidor');
+            console.error('Error al cargar clientes:', error);
+            toast({
+                title: 'Error',
+                description: 'No se pudieron cargar los clientes',
+                status: 'error',
+                duration: 3000,
+                isClosable: true,
+            });
+        }
+    };
+
+    const fetchVehiculos = async () => {
+        try {
+            const response = await ApiService.get('/vehiculos?estado=DISPONIBLE');
+            if (response.ok) {
+                setVehiculos(response.data);
+            }
+        } catch (error) {
+            console.error('Error al cargar vehículos:', error);
+            toast({
+                title: 'Error',
+                description: 'No se pudieron cargar los vehículos disponibles',
+                status: 'error',
+                duration: 3000,
+                isClosable: true,
+            });
+        }
+    };
+
+    const validateField = (name, value) => {
+        switch (name) {
+            case 'vehiculo_id':
+                return !value ? 'Debe seleccionar un vehículo' : '';
+            case 'cliente_id':
+                return !value ? 'Debe seleccionar un cliente' : '';
+            case 'funcionarioEntrega':
+            case 'funcionarioRecibe':
+                return value.trim().length < 3 ? 'Debe tener al menos 3 caracteres' : '';
+            case 'dniEntrega':
+            case 'dniRecibe':
+                return !/^\d{7,8}$/.test(value) ? 'DNI inválido' : '';
+            case 'fechaEntrega':
+                return !value ? 'La fecha de entrega es requerida' : '';
+            case 'lugarEntrega':
+                return value.trim().length < 3 ? 'El lugar de entrega es requerido' : '';
+            case 'kilometrajeEntrega':
+                return isNaN(value) || value < 0 ? 'Kilometraje inválido' : '';
+            case 'nivelCombustible':
+                return !value ? 'Debe seleccionar el nivel de combustible' : '';
+            default:
+                return '';
+        }
+    };
+
+    const validateForm = () => {
+        const newErrors = {};
+        const requiredFields = [
+            'vehiculo_id', 'cliente_id', 'funcionarioEntrega',
+            'funcionarioRecibe', 'dniEntrega', 'dniRecibe',
+            'fechaEntrega', 'lugarEntrega', 'kilometrajeEntrega',
+            'nivelCombustible'
+        ];
+
+        requiredFields.forEach(field => {
+            const error = validateField(field, entregaData[field]);
+            if (error) {
+                newErrors[field] = error;
+            }
+        });
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        if (type === 'checkbox') {
+            setEntregaData(prev => ({
+                ...prev,
+                inventario: {
+                    ...prev.inventario,
+                    [name]: checked,
+                },
+            }));
+        } else {
+            setEntregaData(prev => ({
+                ...prev,
+                [name]: value,
+            }));
+        }
+
+        // Limpiar error del campo
+        if (errors[name]) {
+            setErrors(prev => ({
+                ...prev,
+                [name]: ''
+            }));
+        }
+    };
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        if (!validateForm()) {
+            toast({
+                title: 'Error de validación',
+                description: 'Por favor, corrija los errores en el formulario',
+                status: 'error',
+                duration: 3000,
+                isClosable: true,
+            });
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const response = await ApiService.post('/entrega', entregaData);
+
+            if (response.ok) {
+                toast({
+                    title: 'Entrega registrada',
+                    description: 'La entrega ha sido registrada exitosamente',
+                    status: 'success',
+                    duration: 3000,
+                    isClosable: true,
+                });
+
+                // Resetear formulario
+                setEntregaData({
+                    vehiculo_id: '',
+                    cliente_id: '',
+                    funcionarioEntrega: '',
+                    funcionarioRecibe: '',
+                    dniEntrega: '',
+                    dniRecibe: '',
+                    fechaEntrega: '',
+                    fechaDevolucion: '',
+                    lugarEntrega: '',
+                    lugarDevolucion: '',
+                    kilometrajeEntrega: '',
+                    kilometrajeDevolucion: '',
+                    nivelCombustible: '',
+                    observaciones: '',
+                    inventario: {
+                        lucesPrincipales: false,
+                        luzMedia: false,
+                        luzStop: false,
+                        antenaRadio: false,
+                        limpiaParabrisas: false,
+                        espejoIzquierdo: false,
+                        espejoDerecho: false,
+                        vidriosLaterales: false,
+                        parabrisas: false,
+                        tapones: false,
+                        taponGasolina: false,
+                        carroceria: false,
+                        parachoqueDelantero: false,
+                        parachoqueTrasero: false,
+                        placas: false,
+                        // Nuevos campos de inventario
+                        calefaccion: false,
+                        radioCd: false,
+                        bocinas: false,
+                        encendedor: false,
+                        espejoRetrovisor: false,
+                        ceniceros: false,
+                        cinturones: false,
+                        manijasVidrios: false,
+                        pisosGoma: false,
+                        tapetes: false,
+                        fundaAsientos: false,
+                        jaladorPuertas: false,
+                        sujetadorManos: false,
+                        gato: false,
+                        llaveRueda: false,
+                        estucheLlaves: false,
+                        triangulo: false,
+                        llantaAuxilio: false,
+                        extintor: false,
+                        botiquin: false,
+                        otros: false,
+                        soat: false,
+                        inspeccionTecnica: false
+                    },
+                });
+
+                if (onSubmit) {
+                    onSubmit(response.data);
+                }
+
+                // Actualizar lista de vehículos disponibles
+                fetchVehiculos();
+            } else {
+                throw new Error(response.msg || 'Error al registrar la entrega');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            toast({
+                title: 'Error',
+                description: error.message || 'Hubo un problema al registrar la entrega',
+                status: 'error',
+                duration: 3000,
+                isClosable: true,
+            });
         } finally {
-            setLoading(false);
+            setIsSubmitting(false);
         }
     };
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-        >
-            <motion.div
-                initial={{ scale: 0.9 }}
-                animate={{ scale: 1 }}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden"
+        <Container maxW="6xl" py={10}>
+            <Box
+                bg={bgColor}
+                borderWidth={1}
+                borderRadius="lg"
+                p={8}
+                boxShadow="lg"
             >
-                <div className="p-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <FaCar className="text-primary-600" />
-                            Registro de Entrega
-                        </h2>
-                        <button
-                            onClick={onClose}
-                            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                        >
-                            <FaTimes />
-                        </button>
-                    </div>
-
-                    {error && (
-                        <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="mb-4 p-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 rounded-lg"
-                        >
-                            {error}
-                        </motion.div>
-                    )}
-
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Cliente
-                                </label>
-                                <select
-                                    name="clienteId"
-                                    value={formData.clienteId}
+                <Heading as="h2" size="lg" mb={6} textAlign="center">
+                    Registro de Entrega de Vehículo
+                </Heading>
+                <form onSubmit={handleSubmit}>
+                    <VStack spacing={6} align="stretch">
+                        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+                            <FormControl isRequired isInvalid={!!errors.cliente_id}>
+                                <FormLabel>Cliente</FormLabel>
+                                <Select
+                                    name="cliente_id"
+                                    value={entregaData.cliente_id}
                                     onChange={handleChange}
-                                    required
-                                    className="input-field"
+                                    placeholder="Seleccione un cliente"
                                 >
-                                    <option value="">Seleccionar cliente</option>
                                     {clientes.map(cliente => (
                                         <option key={cliente.id} value={cliente.id}>
-                                            {cliente.nombre} {cliente.apellido} - {cliente.documento}
+                                            {cliente.tipo_cliente === 'persona'
+                                                ? cliente.nombre
+                                                : cliente.razon_social} - {cliente.dni_cuit}
                                         </option>
                                     ))}
-                                </select>
-                            </div>
+                                </Select>
+                                <FormErrorMessage>{errors.cliente_id}</FormErrorMessage>
+                            </FormControl>
 
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Vehículo
-                                </label>
-                                <select
-                                    name="vehiculoId"
-                                    value={formData.vehiculoId}
+                            <FormControl isRequired isInvalid={!!errors.vehiculo_id}>
+                                <FormLabel>Vehículo</FormLabel>
+                                <Select
+                                    name="vehiculo_id"
+                                    value={entregaData.vehiculo_id}
                                     onChange={handleChange}
-                                    required
-                                    className="input-field"
+                                    placeholder="Seleccione un vehículo"
                                 >
-                                    <option value="">Seleccionar vehículo</option>
                                     {vehiculos.map(vehiculo => (
                                         <option key={vehiculo.id} value={vehiculo.id}>
                                             {vehiculo.marca} {vehiculo.modelo} - {vehiculo.patente}
                                         </option>
                                     ))}
-                                </select>
-                            </div>
+                                </Select>
+                                <FormErrorMessage>{errors.vehiculo_id}</FormErrorMessage>
+                            </FormControl>
 
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Fecha de Entrega
-                                </label>
-                                <input
-                                    type="datetime-local"
-                                    name="fechaEntrega"
-                                    value={formData.fechaEntrega}
+                            <FormControl isRequired isInvalid={!!errors.funcionarioEntrega}>
+                                <FormLabel>Funcionario que entrega</FormLabel>
+                                <InputGroup>
+                                    <InputLeftElement>
+                                        <FaUser />
+                                    </InputLeftElement>
+                                    <Input
+                                        name="funcionarioEntrega"
+                                        value={entregaData.funcionarioEntrega}
+                                        onChange={handleChange}
+                                        placeholder="Nombre completo"
+                                    />
+                                </InputGroup>
+                                <FormErrorMessage>{errors.funcionarioEntrega}</FormErrorMessage>
+                            </FormControl>
+
+                            <FormControl isRequired isInvalid={!!errors.dniEntrega}>
+                                <FormLabel>DNI (Entrega)</FormLabel>
+                                <Input
+                                    name="dniEntrega"
+                                    value={entregaData.dniEntrega}
                                     onChange={handleChange}
-                                    required
-                                    className="input-field"
+                                    placeholder="DNI"
                                 />
-                            </div>
+                                <FormErrorMessage>{errors.dniEntrega}</FormErrorMessage>
+                            </FormControl>
 
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Fecha de Devolución
-                                </label>
-                                <input
-                                    type="datetime-local"
-                                    name="fechaDevolucion"
-                                    value={formData.fechaDevolucion}
+                            <FormControl isRequired isInvalid={!!errors.funcionarioRecibe}>
+                                <FormLabel>Funcionario que recibe</FormLabel>
+                                <InputGroup>
+                                    <InputLeftElement>
+                                        <FaUser />
+                                    </InputLeftElement>
+                                    <Input
+                                        name="funcionarioRecibe"
+                                        value={entregaData.funcionarioRecibe}
+                                        onChange={handleChange}
+                                        placeholder="Nombre completo"
+                                    />
+                                </InputGroup>
+                                <FormErrorMessage>{errors.funcionarioRecibe}</FormErrorMessage>
+                            </FormControl>
+
+                            <FormControl isRequired isInvalid={!!errors.dniRecibe}>
+                                <FormLabel>DNI (Recibe)</FormLabel>
+                                <Input
+                                    name="dniRecibe"
+                                    value={entregaData.dniRecibe}
                                     onChange={handleChange}
-                                    required
-                                    className="input-field"
+                                    placeholder="DNI"
                                 />
-                            </div>
+                                <FormErrorMessage>{errors.dniRecibe}</FormErrorMessage>
+                            </FormControl>
+                        </SimpleGrid>
 
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Lugar de Entrega
-                                </label>
-                                <input
-                                    type="text"
-                                    name="lugarEntrega"
-                                    value={formData.lugarEntrega}
-                                    onChange={handleChange}
-                                    required
-                                    className="input-field"
-                                />
-                            </div>
+                        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+                            <FormControl isRequired isInvalid={!!errors.fechaEntrega}>
+                                <FormLabel>Fecha de Entrega</FormLabel>
+                                <InputGroup>
+                                    <InputLeftElement>
+                                        <FaCalendarAlt />
+                                    </InputLeftElement>
+                                    <Input
+                                        type="date"
+                                        name="fechaEntrega"
+                                        value={entregaData.fechaEntrega}
+                                        onChange={handleChange}
+                                    />
+                                </InputGroup>
+                                <FormErrorMessage>{errors.fechaEntrega}</FormErrorMessage>
+                            </FormControl>
 
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Lugar de Devolución
-                                </label>
-                                <input
-                                    type="text"
-                                    name="lugarDevolucion"
-                                    value={formData.lugarDevolucion}
-                                    onChange={handleChange}
-                                    required
-                                    className="input-field"
-                                />
-                            </div>
+                            <FormControl isRequired isInvalid={!!errors.lugarEntrega}>
+                                <FormLabel>Lugar de Entrega</FormLabel>
+                                <InputGroup>
+                                    <InputLeftElement>
+                                        <FaMapMarkerAlt />
+                                    </InputLeftElement>
+                                    <Input
+                                        name="lugarEntrega"
+                                        value={entregaData.lugarEntrega}
+                                        onChange={handleChange}
+                                        placeholder="Lugar de entrega"
+                                    />
+                                </InputGroup>
+                                <FormErrorMessage>{errors.lugarEntrega}</FormErrorMessage>
+                            </FormControl>
 
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Kilometraje de Entrega
-                                </label>
-                                <input
-                                    type="number"
-                                    name="kilometrajeEntrega"
-                                    value={formData.kilometrajeEntrega}
-                                    onChange={handleChange}
-                                    required
-                                    className="input-field"
-                                />
-                            </div>
+                            <FormControl isRequired isInvalid={!!errors.kilometrajeEntrega}>
+                                <FormLabel>Kilometraje de Entrega</FormLabel>
+                                <InputGroup>
+                                    <InputLeftElement>
+                                        <FaRuler />
+                                    </InputLeftElement>
+                                    <Input
+                                        type="number"
+                                        name="kilometrajeEntrega"
+                                        value={entregaData.kilometrajeEntrega}
+                                        onChange={handleChange}
+                                        placeholder="Km de entrega"
+                                    />
+                                </InputGroup>
+                                <FormErrorMessage>{errors.kilometrajeEntrega}</FormErrorMessage>
+                            </FormControl>
 
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Nivel de Combustible
-                                </label>
-                                <select
+                            <FormControl isRequired isInvalid={!!errors.nivelCombustible}>
+                                <FormLabel>Nivel de Combustible</FormLabel>
+                                <Select
                                     name="nivelCombustible"
-                                    value={formData.nivelCombustible}
+                                    value={entregaData.nivelCombustible}
                                     onChange={handleChange}
-                                    required
-                                    className="input-field"
+                                    placeholder="Seleccione el nivel"
                                 >
-                                    <option value="">Seleccionar nivel</option>
-                                    <option value="1/4">1/4</option>
-                                    <option value="1/2">1/2</option>
+                                    <option value="lleno">Lleno</option>
                                     <option value="3/4">3/4</option>
-                                    <option value="Lleno">Lleno</option>
-                                </select>
-                            </div>
+                                    <option value="1/2">1/2</option>
+                                    <option value="1/4">1/4</option>
+                                    <option value="vacio">Vacío</option>
+                                </Select>
+                                <FormErrorMessage>{errors.nivelCombustible}</FormErrorMessage>
+                            </FormControl>
+                        </SimpleGrid>
 
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Funcionario que Entrega
-                                </label>
-                                <input
-                                    type="text"
-                                    name="funcionarioEntrega"
-                                    value={formData.funcionarioEntrega}
+                        <Heading as="h3" size="md" mt={4}>
+                            Inventario y Control de Condiciones
+                        </Heading>
+                        <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
+                            {Object.keys(entregaData.inventario).map((item) => (
+                                <Checkbox
+                                    key={item}
+                                    name={item}
+                                    isChecked={entregaData.inventario[item]}
                                     onChange={handleChange}
-                                    required
-                                    className="input-field"
-                                />
-                            </div>
+                                >
+                                    {item.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}
+                                </Checkbox>
+                            ))}
+                        </SimpleGrid>
 
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Funcionario que Recibe
-                                </label>
-                                <input
-                                    type="text"
-                                    name="funcionarioRecibe"
-                                    value={formData.funcionarioRecibe}
-                                    onChange={handleChange}
-                                    required
-                                    className="input-field"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Observaciones
-                            </label>
-                            <textarea
+                        <FormControl>
+                            <FormLabel>Observaciones</FormLabel>
+                            <Textarea
                                 name="observaciones"
-                                value={formData.observaciones}
+                                value={entregaData.observaciones}
                                 onChange={handleChange}
-                                rows="3"
-                                className="input-field"
+                                placeholder="Observaciones adicionales"
                             />
-                        </div>
+                        </FormControl>
 
-                        <div className="flex justify-end gap-4 mt-6">
-                            <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                type="button"
-                                onClick={onClose}
-                                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                            >
-                                Cancelar
-                            </motion.button>
-                            <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                type="submit"
-                                disabled={loading}
-                                className="btn-primary flex items-center gap-2"
-                            >
-                                <FaSave />
-                                {loading ? 'Guardando...' : 'Guardar Entrega'}
-                            </motion.button>
-                        </div>
-                    </form>
-                </div>
-            </motion.div>
-        </motion.div>
+                        <Text fontSize="sm" color="gray.600" mt={2}>
+                            Nota: Utilizar Gas Oil Premium - Infinia Diesel – Quantium Diesel – Shell Bi Power.
+                            Prohibido fumar dentro del vehículo.
+                        </Text>
+
+                        <Button
+                            type="submit"
+                            colorScheme="blue"
+                            size="lg"
+                            width="full"
+                            mt={4}
+                            isLoading={isSubmitting}
+                            loadingText="Registrando..."
+                            disabled={isSubmitting}
+                        >
+                            Registrar Entrega
+                        </Button>
+                    </VStack>
+                </form>
+            </Box>
+        </Container>
     );
 };
 

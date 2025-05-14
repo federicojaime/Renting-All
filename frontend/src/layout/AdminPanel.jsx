@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
     Box, Button, Grid, Heading, Icon, Text, Flex, VStack,
     useColorModeValue, Container, useDisclosure, Modal,
@@ -13,15 +12,13 @@ import {
 import {
     FaCar, FaUserPlus, FaClipboardList, FaSignOutAlt,
     FaFileInvoiceDollar, FaFileExport, FaSearch, FaCog,
-    FaBell, FaChartLine,FaUserEdit, FaUsers
+    FaBell, FaChartLine
 } from 'react-icons/fa';
 import { MdDashboard, MdHelp } from 'react-icons/md';
 import RegistroEntrega from '../forms/RegistroEntrega';
 import RegistrarVehiculo from '../forms/RegistrarVehiculo';
 import RegistrarCliente from '../forms/RegistrarCliente';
 import RegistrarFacturas from '../forms/RegistrarFacturas';
-import UserTable from '../tables/UserTable';
-import UserProfile from './UserProfile';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid,
     Tooltip, Legend, ResponsiveContainer
@@ -35,15 +32,11 @@ import ClientTable from '../tables/ClientTable';
 import EntregasTable from '../tables/EntregasTable';
 
 const AdminPanel = ({ onLogout, user }) => {
-    // Variables adicionales para estilos
-    const borderColor = useColorModeValue('gray.200', 'gray.700');
-    
     // Estados
     const [activeForm, setActiveForm] = useState(null);
     const [entregas, setEntregas] = useState([]);
     const [flota, setFlota] = useState([]);
     const [clientes, setClientes] = useState([]);
-    const [currentUser, setCurrentUser] = useState(user);
     const [stats, setStats] = useState({
         totalVehicles: 0,
         activeDeliveries: 0,
@@ -51,8 +44,6 @@ const AdminPanel = ({ onLogout, user }) => {
         revenue: 0,
     });
     const [chartData, setChartData] = useState([]);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-    const [searchQuery, setSearchQuery] = useState('');
 
     // Hooks de Chakra UI
     const { isOpen, onOpen, onClose } = useDisclosure();
@@ -193,31 +184,35 @@ const AdminPanel = ({ onLogout, user }) => {
         {
             title: 'Registrar Vehículo',
             icon: FaCar,
-            color: 'blue',
+            color: 'blue.500',
+            bgColor: 'blue.50',
             description: 'Añade un nuevo vehículo al sistema.',
             form: 'vehicle'
         },
         {
             title: 'Registrar Cliente',
             icon: FaUserPlus,
-            color: 'green',
-            description: 'Registra un nuevo cliente.',
+            color: 'green.500',
+            bgColor: 'green.50',
+            description: 'Registra un nuevo cliente en la base de datos.',
             form: 'client'
         },
         {
-            title: 'Registrar Entrega',
+            title: 'Registro de Entrega',
             icon: FaClipboardList,
-            color: 'purple',
-            description: 'Registra una nueva entrega.',
+            color: 'purple.500',
+            bgColor: 'purple.50',
+            description: 'Crea un nuevo registro de entrega.',
             form: 'delivery'
         },
         {
-            title: 'Registrar Factura',
+            title: 'Registrar Facturas',
             icon: FaFileInvoiceDollar,
-            color: 'orange',
-            description: 'Crea una nueva factura.',
-            form: 'invoice'
-        }
+            color: 'orange.500',
+            bgColor: 'orange.50',
+            description: 'Gestiona las facturas y pagos de los vehículos.',
+            form: 'facturas'
+        },
     ];
 
     // Componente de tarjeta de acción
@@ -341,147 +336,343 @@ const AdminPanel = ({ onLogout, user }) => {
     };
     // Renderizado del componente
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            {/* Sidebar */}
-            <motion.aside
-                initial={{ x: -300 }}
-                animate={{ x: isSidebarOpen ? 0 : -300 }}
-                className="fixed top-0 left-0 h-full w-64 bg-white dark:bg-gray-800 shadow-lg z-30"
-            >
-                <div className="p-4">
-                    <img src={Logo} alt="Logo" className="h-8 mb-8" />
-                    <nav className="space-y-2">
+        <Box bg={bgColor} minH="100vh">
+            {/* Header */}
+            <Flex as="header" align="center" justify="space-between" wrap="wrap" padding="1.5rem" bg={cardBgColor} color={headingColor}>
+                <img src={Logo} alt="Admin Panel Logo" className="h-16 w-auto" />
+                <Flex align="center">
+                    <Menu>
+                        <MenuButton as={Button} rounded={'full'} variant={'link'} cursor={'pointer'} minW={0} marginRight={5}>
+                            <Icon as={FaBell} w={6} h={6} />
+                        </MenuButton>
+                        <MenuList>
+                            <MenuItem>Notificación 1</MenuItem>
+                            <MenuItem>Notificación 2</MenuItem>
+                        </MenuList>
+                    </Menu>
+                    <Menu>
+                        <MenuButton as={Button} rounded={'full'} variant={'link'} cursor={'pointer'} minW={0}>
+                            <Icon as={FaCog} w={6} h={6} />
+                        </MenuButton>
+                        <MenuList>
+                            <MenuItem onClick={onLogout}>Cerrar Sesión</MenuItem>
+                        </MenuList>
+                    </Menu>
+                </Flex>
+            </Flex>
+
+            <Container maxW="7xl" py={10}>
+                <VStack spacing={8} align="stretch">
+                    {/* Estadísticas */}
+                    <Grid templateColumns={{ base: '1fr', md: 'repeat(3, 1fr)' }} gap={6} mb={6}>
+                        <Box
+                            bg="blue.50"
+                            p={6}
+                            borderRadius="lg"
+                            boxShadow="lg"
+                            textAlign="center"
+                            transition="all 0.3s"
+                            _hover={{
+                                transform: 'translateY(-2px)',
+                                boxShadow: 'xl',
+                            }}
+                        >
+                            <Text color="gray.600" fontSize="md" fontWeight="medium" mb={2}>
+                                Total Vehículos
+                            </Text>
+                            <Text color="blue.600" fontSize="3xl" fontWeight="bold">
+                                {stats.totalVehicles.toLocaleString()}
+                            </Text>
+                        </Box>
+
+                        <Box
+                            bg="green.50"
+                            p={6}
+                            borderRadius="lg"
+                            boxShadow="lg"
+                            textAlign="center"
+                            transition="all 0.3s"
+                            _hover={{
+                                transform: 'translateY(-2px)',
+                                boxShadow: 'xl',
+                            }}
+                        >
+                            <Text color="gray.600" fontSize="md" fontWeight="medium" mb={2}>
+                                Entregas Activas
+                            </Text>
+                            <Text color="green.600" fontSize="3xl" fontWeight="bold">
+                                {stats.activeDeliveries.toLocaleString()}
+                            </Text>
+                        </Box>
+
+                        <Box
+                            bg="purple.50"
+                            p={6}
+                            borderRadius="lg"
+                            boxShadow="lg"
+                            textAlign="center"
+                            transition="all 0.3s"
+                            _hover={{
+                                transform: 'translateY(-2px)',
+                                boxShadow: 'xl',
+                            }}
+                        >
+                            <Text color="gray.600" fontSize="md" fontWeight="medium" mb={2}>
+                                Total Clientes
+                            </Text>
+                            <Text color="purple.600" fontSize="3xl" fontWeight="bold">
+                                {stats.totalClients.toLocaleString()}
+                            </Text>
+                        </Box>
+                    </Grid>
+
+                    {/* Tarjetas de acción */}
+                    <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }} gap={6}>
                         {actionCards.map((card) => (
-                            <motion.button
+                            <ActionCard
                                 key={card.title}
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
+                                {...card}
                                 onClick={() => handleCardClick(card.form)}
-                                className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                            >
-                                <card.icon className={`text-${card.color}-500 text-xl`} />
-                                <span className="text-gray-700 dark:text-gray-200">{card.title}</span>
-                            </motion.button>
+                            />
                         ))}
-                    </nav>
-                </div>
-            </motion.aside>
+                    </Grid>
 
-            {/* Main Content */}
-            <main className={`transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-0'}`}>
-                <div className="p-6">
-                    {/* Header */}
-                    <div className="flex justify-between items-center mb-8">
-                        <button
-                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-                        >
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                            </svg>
-                        </button>
-                        
-                        <div className="flex items-center space-x-4">
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    placeholder="Buscar..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="input-field pl-10"
-                                />
-                                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                            </div>
-                            
-                            <button
-                                onClick={onLogout}
-                                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-                            >
-                                <FaSignOutAlt className="text-gray-600 dark:text-gray-300" />
-                            </button>
-                        </div>
-                    </div>
+                    {/* Tabs de contenido */}
+                    <Box bg={cardBgColor} p={6} borderRadius="lg" boxShadow="lg">
+                        <Tabs>
+                            <TabList>
+                                <Tab>Informe de Entregas</Tab>
+                                <Tab>Flota de Vehículos</Tab>
+                                <Tab>Clientes</Tab>
+                            </TabList>
 
-                    {/* Stats Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                        {Object.entries(stats).map(([key, value]) => (
-                            <motion.div
-                                key={key}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="glass-card p-6"
-                            >
-                                <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300">
-                                    {key.charAt(0).toUpperCase() + key.slice(1)}
-                                </h3>
-                                <p className="text-3xl font-bold text-primary-600 dark:text-primary-400">
-                                    {value}
-                                </p>
-                            </motion.div>
-                        ))}
-                    </div>
+                            <TabPanels>
+                                {/* Panel de Entregas */}
+                                {/* Panel de Entregas */}
+                                <TabPanel>
+                                    <Flex justifyContent="space-between" alignItems="center" mb={4}>
+                                        <Heading size="lg" color={headingColor}>Informe de Entregas</Heading>
+                                        <Button
+                                            leftIcon={<FaFileExport />}
+                                            colorScheme="teal"
+                                            onClick={() => exportToExcel(entregas, 'registro_entregas', {
+                                                cliente: 'Nombre del Cliente',
+                                                fechaEntrega: 'Fecha de Entrega',
+                                                ubicacion: 'Ubicación',
+                                                documento: 'Documento',
+                                                vehiculo: 'Vehículo Asignado'
+                                            })}
+                                        >
+                                            Exportar a Excel
+                                        </Button>
+                                    </Flex>
+                                    <EntregasTable
+                                        data={entregas}
+                                        onUpdate={async (id, updatedData) => {
+                                            try {
+                                                const response = await ApiService.patch(`/entrega/${id}/finalizar`, updatedData);
+                                                if (response.ok) {
+                                                    const updatedEntregas = entregas.map(entrega =>
+                                                        entrega.id === id ? { ...entrega, ...updatedData } : entrega
+                                                    );
+                                                    setEntregas(updatedEntregas);
+                                                    fetchData(); // Recargar los datos para actualizar todo
+                                                    toast({
+                                                        title: 'Actualización exitosa',
+                                                        description: 'La entrega ha sido actualizada correctamente.',
+                                                        status: 'success',
+                                                        duration: 3000,
+                                                        isClosable: true,
+                                                    });
+                                                } else {
+                                                    throw new Error(response.msg || 'Error al actualizar la entrega');
+                                                }
+                                            } catch (error) {
+                                                toast({
+                                                    title: 'Error',
+                                                    description: error.message || 'Hubo un problema al actualizar la entrega',
+                                                    status: 'error',
+                                                    duration: 5000,
+                                                    isClosable: true,
+                                                });
+                                                throw error;
+                                            }
+                                        }}
+                                    />
+                                </TabPanel>
 
-                    {/* Charts */}
-                    <div className="glass-card p-6 mb-8">
-                        <h2 className="text-xl font-medium mb-4">Estadísticas</h2>
-                        <div className="h-80">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={chartData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="name" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Legend />
-                                    <Line type="monotone" dataKey="value" stroke="#0ea5e9" />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </div>
+                                {/* Panel de Flota */}
+                                <TabPanel>
+                                    <Flex justifyContent="space-between" alignItems="center" mb={4}>
+                                        <Heading size="lg" color={headingColor}>Flota de Vehículos</Heading>
+                                        <Button
+                                            leftIcon={<FaFileExport />}
+                                            colorScheme="teal"
+                                            onClick={() => exportToExcel(flota, 'flota_vehiculos', {
+                                                id: 'ID',
+                                                marca: 'Marca',
+                                                modelo: 'Modelo',
+                                                patente: 'Patente',
+                                                estado: 'Estado',
+                                                responsable: 'Responsable'
+                                            })}
+                                        >
+                                            Exportar a Excel
+                                        </Button>
+                                    </Flex>
+                                    <FlotaTable
+                                        data={flota}
+                                        onUpdate={async (id, updatedData) => {
+                                            try {
+                                                const response = await ApiService.patch(`/vehiculo/${id}`, updatedData);
+                                                if (response.ok) {
+                                                    const updatedFlota = flota.map(vehiculo =>
+                                                        vehiculo.id === id ? { ...vehiculo, ...updatedData } : vehiculo
+                                                    );
+                                                    setFlota(updatedFlota);
+                                                    toast({
+                                                        title: 'Actualización exitosa',
+                                                        description: 'El vehículo ha sido actualizado correctamente.',
+                                                        status: 'success',
+                                                        duration: 3000,
+                                                        isClosable: true,
+                                                    });
+                                                } else {
+                                                    throw new Error(response.msg || 'Error al actualizar el vehículo');
+                                                }
+                                            } catch (error) {
+                                                toast({
+                                                    title: 'Error',
+                                                    description: error.message || 'Hubo un problema al actualizar el vehículo',
+                                                    status: 'error',
+                                                    duration: 5000,
+                                                    isClosable: true,
+                                                });
+                                                throw error;
+                                            }
+                                        }}
+                                    />
+                                </TabPanel>
 
-                    {/* Tables */}
-                    <div className="space-y-6">
-                        <div className="glass-card p-6">
-                            <h2 className="text-xl font-medium mb-4">Últimas Entregas</h2>
-                            <EntregasTable data={entregas} />
-                        </div>
+                                {/* Panel de Clientes */}
+                                <TabPanel>
+                                    <Flex justifyContent="space-between" alignItems="center" mb={4}>
+                                        <Heading size="lg" color={headingColor}>Lista de Clientes</Heading>
+                                        <Button
+                                            leftIcon={<FaFileExport />}
+                                            colorScheme="teal"
+                                            onClick={() => exportToExcel(clientes, 'lista_clientes', {
+                                                nombre: 'Nombre',
+                                                documento: 'Documento',
+                                                email: 'Email',
+                                                telefono: 'Teléfono',
+                                                direccion: 'Dirección'
+                                            })}
+                                        >
+                                            Exportar a Excel
+                                        </Button>
+                                    </Flex>
+                                    <ClientTable
+                                        data={clientes}
+                                        onUpdate={async (id, updatedData) => {
+                                            try {
+                                                const response = await ApiService.patch(`/cliente/${id}`, updatedData);
+                                                if (response.ok) {
+                                                    const updatedClientes = clientes.map(cliente =>
+                                                        cliente.id === id ? {
+                                                            ...cliente,
+                                                            tipo_cliente: updatedData.tipoCliente,
+                                                            nombre: updatedData.nombre,
+                                                            razon_social: updatedData.razonSocial,
+                                                            dni_cuit: updatedData.dniCuit,
+                                                            telefono: updatedData.telefono,
+                                                            email: updatedData.email
+                                                        } : cliente
+                                                    );
+                                                    setClientes(updatedClientes);
+                                                    toast({
+                                                        title: 'Actualización exitosa',
+                                                        description: 'El cliente ha sido actualizado correctamente.',
+                                                        status: 'success',
+                                                        duration: 3000,
+                                                        isClosable: true,
+                                                    });
+                                                } else {
+                                                    throw new Error(response.msg || 'Error al actualizar el cliente');
+                                                }
+                                            } catch (error) {
+                                                toast({
+                                                    title: 'Error',
+                                                    description: error.message || 'Hubo un problema al actualizar el cliente',
+                                                    status: 'error',
+                                                    duration: 5000,
+                                                    isClosable: true,
+                                                });
+                                                throw error;
+                                            }
+                                        }}
+                                        onDelete={async (id) => {
+                                            try {
+                                                const response = await ApiService.delete(`/cliente/${id}`);
+                                                if (response.ok) {
+                                                    const updatedClientes = clientes.filter(cliente => cliente.id !== id);
+                                                    setClientes(updatedClientes);
+                                                    toast({
+                                                        title: 'Eliminación exitosa',
+                                                        description: 'El cliente ha sido eliminado correctamente.',
+                                                        status: 'success',
+                                                        duration: 3000,
+                                                        isClosable: true,
+                                                    });
+                                                } else {
+                                                    throw new Error(response.msg || 'Error al eliminar el cliente');
+                                                }
+                                            } catch (error) {
+                                                toast({
+                                                    title: 'Error',
+                                                    description: error.message || 'Hubo un problema al eliminar el cliente',
+                                                    status: 'error',
+                                                    duration: 5000,
+                                                    isClosable: true,
+                                                });
+                                                throw error;
+                                            }
+                                        }}
+                                    />
+                                </TabPanel>
+                            </TabPanels>
+                        </Tabs>
+                    </Box>
+                </VStack>
+            </Container>
 
-                        <div className="glass-card p-6">
-                            <h2 className="text-xl font-medium mb-4">Flota</h2>
-                            <FlotaTable data={flota} />
-                        </div>
+            {/* Modal de formularios */}
+            <Modal isOpen={isOpen} onClose={onClose} size="3xl">
+                <ModalOverlay />
+                <ModalContent>
+                    <ModalCloseButton />
+                    <ModalBody pb={6}>
+                        {activeForm === 'vehicle' && <RegistrarVehiculo onSubmit={(data) => handleFormSubmit('vehiculo', data)} />}
+                        {activeForm === 'client' && <RegistrarCliente onSubmit={(data) => handleFormSubmit('cliente', data)} />}
+                        {activeForm === 'delivery' && <RegistroEntrega flota={flota} onSubmit={(data) => handleFormSubmit('entrega', data)} />}
+                        {activeForm === 'facturas' && <RegistrarFacturas />}
+                    </ModalBody>
+                </ModalContent>
+            </Modal>
 
-                        <div className="glass-card p-6">
-                            <h2 className="text-xl font-medium mb-4">Clientes</h2>
-                            <ClientTable data={clientes} />
-                        </div>
-                    </div>
-                </div>
-            </main>
-
-            {/* Modals */}
-            <AnimatePresence>
-                {activeForm && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-                    >
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className="glass-card p-6 w-full max-w-2xl"
-                        >
-                            {activeForm === 'vehicle' && <RegistrarVehiculo onClose={() => setActiveForm(null)} />}
-                            {activeForm === 'client' && <RegistrarCliente onClose={() => setActiveForm(null)} />}
-                            {activeForm === 'delivery' && <RegistroEntrega onClose={() => setActiveForm(null)} />}
-                            {activeForm === 'invoice' && <RegistrarFacturas onClose={() => setActiveForm(null)} />}
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </div>
+            {/* Footer */}
+            <Box as="footer" bg={cardBgColor} color={textColor} py={4} mt={8}>
+                <Container maxW="7xl">
+                    <Flex justifyContent="space-between" alignItems="center">
+                        <Text mr={2}>&copy; 2025 Admin Panel.
+                            <Link href="https://codeo.site/" display="flex" alignItems="center">
+                                Desarrollado por Codeo.Ar <img src={LogoCodeo} alt="Logo Codeo" width={"3%"} />
+                            </Link>
+                        </Text>
+                    </Flex>
+                </Container>
+            </Box>
+        </Box>
     );
 };
 

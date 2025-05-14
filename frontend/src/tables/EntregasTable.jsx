@@ -30,10 +30,9 @@ import {
     Stack,
     Divider,
 } from '@chakra-ui/react';
-import { FaSearch, FaEye, FaUndo, FaSave, FaFilePdf, FaEdit, FaTrash, FaCheck } from 'react-icons/fa';
-import { generarPDFEntrega } from '../components/EntregaPDF';
+import { FaSearch, FaEye, FaUndo, FaSave, FaFilePdf } from 'react-icons/fa';
+import { generarPDFEntrega } from './EntregaPDF';
 import ApiService from '../services/api';
-import { motion } from 'framer-motion';
 
 const EntregasTable = ({ data, onUpdate }) => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -152,93 +151,41 @@ const EntregasTable = ({ data, onUpdate }) => {
                     No se encontraron entregas
                 </Alert>
             ) : (
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead className="bg-gray-50 dark:bg-gray-800">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Cliente
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Vehículo
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Fecha Entrega
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Estado
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Acciones
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                            {filteredData.map((entrega, index) => (
-                                <motion.tr
-                                    key={entrega.id}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: index * 0.1 }}
-                                    className="hover:bg-gray-50 dark:hover:bg-gray-800"
-                                >
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            {entrega.cliente}
-                                        </div>
-                                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                                            {entrega.documento}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900 dark:text-gray-100">
-                                            {entrega.vehiculo}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900 dark:text-gray-100">
-                                            {new Date(entrega.fechaEntrega).toLocaleDateString()}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                            entrega.fechaDevolucion 
-                                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                        }`}>
-                                            {entrega.fechaDevolucion ? 'Completada' : 'En curso'}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <div className="flex space-x-3">
-                                            <motion.button
-                                                whileHover={{ scale: 1.1 }}
-                                                whileTap={{ scale: 0.9 }}
-                                                className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
-                                            >
-                                                <FaEdit />
-                                            </motion.button>
-                                            <motion.button
-                                                whileHover={{ scale: 1.1 }}
-                                                whileTap={{ scale: 0.9 }}
-                                                className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300"
-                                            >
-                                                <FaCheck />
-                                            </motion.button>
-                                            <motion.button
-                                                whileHover={{ scale: 1.1 }}
-                                                whileTap={{ scale: 0.9 }}
-                                                className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
-                                            >
-                                                <FaTrash />
-                                            </motion.button>
-                                        </div>
-                                    </td>
-                                </motion.tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                <Table variant="simple">
+                    <Thead>
+                        <Tr>
+                            <Th>Cliente</Th>
+                            <Th>Fecha de Entrega</Th>
+                            <Th>Ubicación</Th>
+                            <Th>Documento</Th>
+                            <Th>Vehículo</Th>
+                            <Th>Acciones</Th>
+                        </Tr>
+                    </Thead>
+                    <Tbody>
+                        {filteredData.map((entrega) => (
+                            <Tr key={entrega.id}>
+                                <Td>{entrega.cliente}</Td>
+                                <Td>{entrega.fechaEntrega}</Td>
+                                <Td>{entrega.ubicacion}</Td>
+                                <Td>{entrega.documento}</Td>
+                                <Td>{entrega.vehiculo}</Td> {/* Esto ya es un string formateado */}
+                                <Td>
+                                    <ButtonGroup spacing={2}>
+                                        <IconButton
+                                            aria-label="Ver detalles"
+                                            icon={<FaEye />}
+                                            onClick={() => handleView(entrega)}
+                                            colorScheme="blue"
+                                            size="sm"
+                                        />
+                                        {/* ... resto de los botones */}
+                                    </ButtonGroup>
+                                </Td>
+                            </Tr>
+                        ))}
+                    </Tbody>
+                </Table>
             )}
 
             {/* Modal de Vista Detallada */}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './components/Login';
-import AdminPanel from './components/AdminPanel';
+import Login from './layout/Login';
+import AdminPanel from './layout/AdminPanel';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
