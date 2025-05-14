@@ -1,9 +1,9 @@
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
-import camionetaImg from '../assets/camioneta.jpg';
-import combustibleImg from '../assets/combustible.jpg';
-import LogoImg from '../assets/logo.png';
+import camionetaImg from '../../assets/camioneta.jpg';
+import combustibleImg from '../../assets/combustible.jpg';
+import LogoImg from '../../assets/logo.png';
 
 const agregarImagenes = (doc) => {
     doc.addImage(camionetaImg, 'JPEG', 20, 200, 80, 40);

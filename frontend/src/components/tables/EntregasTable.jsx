@@ -32,7 +32,7 @@ import {
 } from '@chakra-ui/react';
 import { FaSearch, FaEye, FaUndo, FaSave, FaFilePdf } from 'react-icons/fa';
 import { generarPDFEntrega } from './EntregaPDF';
-import ApiService from '../services/api';
+import ApiService from '../../services/api';
 
 const EntregasTable = ({ data, onUpdate }) => {
     const [searchTerm, setSearchTerm] = useState('');
